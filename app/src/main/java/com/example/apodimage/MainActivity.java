@@ -33,8 +33,10 @@ public class MainActivity extends AppCompatActivity {
     String translateUrl = "https://translate.api.cloud.yandex.net";
     String iamUrl = "https://iam.api.cloud.yandex.net";
     String folderID = "b1gn17lo67soo1vi7lse";
+    String oauthToken = "";
     String iamToken = "t1.9euelZrHzZjMi4rKnsjOm82ZjYzKjO3rnpWamcbMk5WVx8iaj4vOy8iem43l8_d9SVI_-e98YFNJ_N3z9z14Tz_573xgU0n8zef1656VmozMysnNncfNk8rJy86RiZHN7_zF656VmozMysnNncfNk8rJy86RiZHN.gvn8yXc-R0WGJ4KF4r0ASVdA1QHb6KoCiqNAO8NLrW5q05RbtFvNcMPsnSzpVGiWeDkGr4GyHp6-j9365T16Aw";
     APODData apodData;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,12 +56,12 @@ public class MainActivity extends AppCompatActivity {
         dataCall.enqueue(new Callback<APODData>() {
             @Override
             public void onResponse(Call<APODData> call, Response<APODData> response) {
-                if(response.isSuccessful() && response.code() == 200){
+                if (response.isSuccessful() && response.code() == 200) {
                     apodData = response.body();
                     if (apodData != null) {
                         titleText.setText(apodData.title);
                         explanationText.setText(apodData.explanation);
-                        if(apodData.media_type.equals("image")){
+                        if (apodData.media_type.equals("image")) {
                             Picasso.get()
                                     .load(apodData.url)
                                     .placeholder(R.drawable.bigvortex)
@@ -71,10 +73,50 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<APODData> call, Throwable throwable) {
-                Toast.makeText(getApplicationContext(), "Сбой запроса", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "Сбой запроса: " + throwable.getMessage(),
+                        Toast.LENGTH_LONG).show();
 
             }
         });
 
-     }
+
+        //работа с запросом по нажатию кнопки
+        translateButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //Запрос на получение IAMToken
+                Retrofit iamRetrofit = new Retrofit.Builder()
+                        .baseUrl(iamUrl)
+                        .addConverterFactory(GsonConverterFactory.create())
+                        .build();
+                IAMService iamService = iamRetrofit.create(IAMService.class);
+                IAMBody iamBody = new IAMBody();
+                iamBody.yandexPassportOauthToken = oauthToken;
+                Call<IAMResponse> iamResponseCall = iamService.getIAMToken(iamBody);
+                iamResponseCall.enqueue(new IAMTokenCallback());
+            }
+        });
+    }
+
+    class IAMTokenCallback implements Callback<IAMResponse> {
+        @Override
+        public void onResponse(Call<IAMResponse> call, Response<IAMResponse> response) {
+            if(response.isSuccessful() && response.code() == 200){
+                IAMResponse iamResponse = response.body();
+                if(iamResponse != null){
+                    iamToken = iamResponse.iamToken;
+                    //Запрос на получение перевода
+
+                }
+            }else{
+                Toast.makeText(getApplicationContext(), "Code: " + response.code() +
+                        " Message: " + response.message(), Toast.LENGTH_LONG).show();
+            }
+        }
+        @Override
+        public void onFailure(Call<IAMResponse> call, Throwable throwable) {
+            Toast.makeText(getApplicationContext(), "Problem: " + throwable.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
 }
