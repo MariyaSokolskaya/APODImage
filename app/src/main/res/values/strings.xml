@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">APODImage</string>
+    <string name="title_text">Астрономическая картинка дня</string>
+    <string name="buttonText">Перевести</string>
+</resources>
